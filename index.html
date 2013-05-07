@@ -110,6 +110,9 @@
             <div class="tab-content">
                 <div class="tab-pane active" id="generation-openssl">
                     <pre>openssl req -new -x509 -nodes -sha384 -days 3650 -newkey rsa:2048 -keyout cert.key > cert.crt</pre>
+                    <p>What you get are <code>cert.key</code>, the private key, and <code>cert.crt</code>, the public certificate.
+                    Later, you'll use <code>cert.crt</code> as a "CA" to trust this user. This works because a certificate
+                    always trusts itself.</p>
                 </div>
                 <div class="tab-pane" id="generation-openssl-ca">
                     <pre># First, create the CA key. We'll encrypt this with a password. You'll need it when signing regular certificates.
@@ -117,11 +120,11 @@ openssl genrsa -aes256 2048 > ca.key
 
 # Then, create the CA certificate using the CA key.
 openssl req -new -x509 -extensions v3_ca -sha384 -days 3650 -key ca.key > ca.crt</pre>
+                    <p>What you get are <code>ca.key</code>, the private CA key, and <code>ca.crt</code>, the public CA certificate.
+                    You'll use <code>ca.crt</code> to trust the regular certificates you sign.</p>
                 </div>
                 <div class="tab-pane" id="generation-openssl-crt">
-                    <p>Do this from the same directory where you generated the CA key and certificate.
-                    You'll use files <code>cert.crt</code> and <code>cert.key</code>
-                    as the regular, signed certificate.</p>
+                    <p>Do this from the same directory where you generated the CA key and certificate.</p>
                     <pre># First, create a signing request and private key.
 openssl req -new -nodes -newkey rsa:2048 -keyout cert.key > cert.csr
 
@@ -131,6 +134,8 @@ openssl x509 -req -extensions v3_usr -days 365 -in cert.csr -CA ca.crt -CAkey ca
 # Optionally, verify the user certificate against the CA. Expect: "cert.crt: OK"
 openssl verify -verbose -CAfile ca.crt cert.crt
 </pre>
+                    <p>What you get are <code>cert.key</code>, the private key, and <code>cert.crt</code>, the public certificate.
+                    You will still use <code>ca.crt</code> to trust this certificate.</p>
                 </div>
             </div>
         </div>
