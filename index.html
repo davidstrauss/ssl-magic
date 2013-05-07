@@ -36,6 +36,7 @@
               <li><a href="#generation">Creating Certificates</a></li>
               <li><a href="#server">Server</a></li>
               <li><a href="#client">Client</a></li>
+              <li><a href="#browser">Browser</a></li>
               <li><a href="#snippits">Snippits</a></li>
             </ul>
           </div><!--/.nav-collapse -->
@@ -194,11 +195,55 @@ openssl verify -verbose -CAfile ca.crt cert.crt
                 <li><a href="#client-java" data-toggle="tab">Java</a></li>
                 <li><a href="#client-nodejs" data-toggle="tab">node.js</a></li>
                 <li><a href="#client-ruby" data-toggle="tab">Ruby</a></li>
-                <li><a href="#client-browsers" data-toggle="tab">Browsers</a></li>
             </ul>
             <div class="tab-content">
                 <div class="tab-pane active" id="python-httplib">
                     <pre>TODO</pre>
+                </div>
+            </div>
+        </div>
+    </div> <!-- /container -->
+
+    <a id="browser"></a>
+    <div class="container">
+        <h2>The Browser</h2>
+
+        <p>This is one of the killer use cases of certificates. You can install
+        them in desktop and mobile browsers for authenticated, passwordless
+        access to applications. A configured browser will work with any site
+        using one of the suggested server configurations.</p>
+
+        <p>Browsers expect client certificates in <a href="http://en.wikipedia.org/wiki/PKCS_%E2%99%AF12">PKCS#12</a> format.
+        You can convert your existing <code>cert.key</code> and <code>cert.crt</code>
+        easily (though it will ask you to set a passphrase for encyption):</p>
+
+        <pre>openssl pkcs12 -export -inkey cert.key -in cert.crt -out cert.p12</pre>
+
+        <p>Once that's done, you should have a <code>cert.p12</code> file ready to go.</p>
+        
+        <div class="tabbable">
+            <ul class="nav nav-tabs">
+                <li class="active"><a href="#browser-chrome" data-toggle="tab">Chrome</a></li>
+                <li><a href="#browser-android" data-toggle="tab">Android</a></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane active" id="browser-chrome">
+                    <ol>
+                        <li>Open the main Chrome menu and select Settings.</li>
+                        <li>Scroll down and click &quot;Show advanced settings...&quot;</li>
+                        <li>Under &quot;HTTPS/SSL&quot;, click &quot;Manage certificates...&quot;</li>
+                        <li>Click &quot;Import...&quot;</li>
+                        <li>Find the <code>cert.p12</code> file you created.</li>
+                        <li>Enter the passphrase when prompted.</li>
+                    </ol>
+                </div>
+                <div class="tab-pane" id="browser-android">
+                    <p>This is known to work on phones running Android 4.0 or newer.</p>
+                    <ol>
+                        <li>E-mail the <code>cert.p12</code> file to your phone.</li>
+                        <li>Open the attachment. Android will prompt you for the
+                        passphrase you set when creating the <code>cert.p12</code> file.</li>
+                    </ol>
                 </div>
             </div>
         </div>
