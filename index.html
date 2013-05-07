@@ -109,6 +109,7 @@
             </ul>
             <div class="tab-content">
                 <div class="tab-pane active" id="generation-openssl">
+                    <p>This option is a lot like an SSH key pair.</p>
                     <pre>openssl req -new -x509 -nodes -sha384 -days 3650 -newkey rsa:2048 -keyout cert.key > cert.crt</pre>
                     <p>What you get are <code>cert.key</code>, the private key, and <code>cert.crt</code>, the public certificate.
                     Later, you'll use <code>cert.crt</code> as a "CA" to trust this user. This works because a certificate
