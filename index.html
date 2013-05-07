@@ -1,12 +1,210 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>SSL Magic</title>
+    <meta charset="utf-8">
+    <title>SSL, TLS, and x.509 Magic</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Client and Server Mutual Authentication with SSL">
+    <meta name="author" content="David Strauss">
+
     <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <style>
+      body {
+        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+        padding-bottom: 60px;
+      }
+      h2 {
+        margin-top: 100px;
+      }
+    </style>
+    <link href="bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
   </head>
+
   <body>
-    <h1>Hello, world!</h1>
+
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="#">Client and Server Authentication Magic</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li><a href="#generation">Creating Certificates</a></li>
+              <li><a href="#server">Server</a></li>
+              <li><a href="#client">Client</a></li>
+              <li><a href="#snippits">Snippits</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+        <p class="lead"><strong>Why SSL?</strong> In short, it will work
+        with and between the <strong>languages,
+        frameworks, and devices</strong> you use. It will support everything from
+        basic access lists to <strong>sophisticated public-key infrastructure</strong>
+        (PKI). And, because you're probably already running server-side
+        SSL, there's almost no additional overhead to using it for clients.
+        It also has <strong>no single point of failure</strong> (SPoF).</p>
+
+        <p class="lead">I'm making this guide because, while the technology is all
+        there, finding the right information to get everything working
+        is still hard. Also, most settings have best-practice values
+        that will work for almost any use case.</p>
+
+        <h3>Common Myths</h3>
+
+        <ul>
+            <li><strong>It will be expensive.</strong> This myth is based
+            on the most common use of SSL, which is for HTTPS in browsers
+            where it's necessary to purchase a certificate to get browser
+            recognition. This isn't necessary for APIs and private
+            infrastructure.</li>
+            <li><strong>I'll have to run a certificate authority.</strong>
+            This is also optional. Even single, self-signed certificates
+            are useful for authentication.</li>
+        </ul>
+    </div>
+
+    <div class="container">
+        <a id="generation"></a>
+        <h2>Generating Certificates</h2>
+
+        <h3>Do I need a certificate authority?</h3>
+
+        <p>This decision depends on how you want to handle trust. Do you
+        want to distribute a list of individual, trusted identities like
+        a guest list at a party? If that's okay, you don't need a CA.</p>
+
+        <p>Or, maybe you want a more structured approach to trust, like
+        a hologram a security desk can check on a person's badge. If this
+        sounds appealing, you probably want a CA. A certificate authority
+        allows you to apply a mark of authenticity (a signature) to
+        certificates you generate, while only requiring distribution of
+        the public CA certificate for others to verify the mark.</p>
+
+        <p>We'll use 2048 bit private keys and AES-256 encryption because
+        <a href="http://www.schneier.com/blog/archives/2009/09/the_doghouse_cr.html">
+        anything more is a waste</a>.</p>
+
+        <div class="tabbable">
+            <ul class="nav nav-tabs">
+                <li class="active"><a href="#generation-openssl" data-toggle="tab">A Single Certificate (No CA)</a></li>
+                <li><a href="#generation-openssl-ca" data-toggle="tab">Creating a CA</a></li>
+                <li><a href="#generation-openssl-crt" data-toggle="tab">Creating a Certificate Signed by the CA</a></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane active" id="generation-openssl">
+                    <pre>openssl req -new -x509 -nodes -sha384 -days 3650 -newkey rsa:2048 -keyout cert.key > cert.crt</pre>
+                </div>
+                <div class="tab-pane" id="generation-openssl-ca">
+                    <pre># First, create the CA key. We'll encrypt this with a password. You'll need it when signing regular certificates.
+openssl genrsa -aes256 2048 > ca.key
+
+# Then, create the CA certificate using the CA key.
+openssl req -new -x509 -extensions v3_ca -sha384 -days 3650 -key ca.key > ca.crt</pre>
+                </div>
+                <div class="tab-pane" id="generation-openssl-crt">
+                    <p>Do this from the same directory where you generated the CA key and certificate.
+                    You'll use files <code>cert.crt</code> and <code>cert.key</code>
+                    as the regular, signed certificate.</p>
+                    <pre># First, create a signing request and private key.
+openssl req -new -nodes -newkey rsa:2048 -keyout cert.key > cert.csr
+
+# Then, sign the request using the CA key and password.
+openssl x509 -req -extensions v3_usr -days 365 -in cert.csr -CA ca.crt -CAkey ca.key -CAcreateserial > cert.crt
+
+# Optionally, verify the user certificate against the CA. Expect: "cert.crt: OK"
+openssl verify -verbose -CAfile ca.crt cert.crt
+</pre>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- /container -->
+
+    <div class="container">
+        <a id="server"></a>
+        <h2>The Server</h2>
+        <div class="tabbable">
+            <ul class="nav nav-tabs">
+                <li class="active"><a href="#server-apache" data-toggle="tab">Apache</a></li>
+                <li><a href="#server-nginx" data-toggle="tab">nginx</a></li>
+                <li><a href="#server-pound" data-toggle="tab">Pound</a></li>
+                <li><a href="#server-twisted" data-toggle="tab">Twisted</a></li>
+                <li><a href="#server-nodejs" data-toggle="tab">node.js</a></li>
+                <li><a href="#server-tomcat" data-toggle="tab">Tomcat</a></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane active" id="server-apache">
+                    <pre>TODO</pre>
+                </div>
+                <div class="tab-pane" id="server-nginx">
+                    <pre>TODO</pre>
+                </div>
+                <div class="tab-pane" id="server-pound">
+                    <pre>TODO</pre>
+                </div>
+                <div class="tab-pane" id="server-twisted">
+                    <pre>TODO</pre>
+                </div>
+                <div class="tab-pane" id="server-nodejs">
+                    <pre>TODO</pre>
+                </div>
+                <div class="tab-pane" id="server-tomcat">
+                    <pre>TODO</pre>
+                </div>
+            </div>
+        </div>
+    </div> <!-- /container -->
+
+    <div class="container">
+        <a id="client"></a>
+        <h2>The Client</h2>
+        <div class="tabbable">
+            <ul class="nav nav-tabs">
+                <li class="active"><a href="#client-python-httplib" data-toggle="tab">Python httplib</a></li>
+                <li><a href="#client-python-requests" data-toggle="tab">Python Requests</a></li>
+                <li><a href="#client-python-twisted" data-toggle="tab">Python Twisted</a></li>
+                <li><a href="#client-curl-cli" data-toggle="tab">cURL CLI</a></li>
+                <li><a href="#client-curl-php" data-toggle="tab">cURL PHP</a></li>
+                <li><a href="#client-curl-c" data-toggle="tab">cURL C/C++</a></li>
+                <li><a href="#client-php-stream-wrappers" data-toggle="tab">PHP stream wrappers</a></li>
+                <li><a href="#client-wget" data-toggle="tab">wget</a></li>
+                <li><a href="#client-java" data-toggle="tab">Java</a></li>
+                <li><a href="#client-nodejs" data-toggle="tab">node.js</a></li>
+                <li><a href="#client-ruby" data-toggle="tab">Ruby</a></li>
+                <li><a href="#client-browsers" data-toggle="tab">Browsers</a></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane active" id="python-httplib">
+                    <pre>TODO</pre>
+                </div>
+            </div>
+        </div>
+    </div> <!-- /container -->
+
+    <div class="container">
+        <a id="snippits"></a>
+        <h2>Other Snippits</h2>
+        <div class="tabbable">
+            <ul class="nav nav-tabs">
+                <li class="active"><a href="#snippits-view" data-toggle="tab">View Certificate</a></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane active" id="snippits-view">
+                    <pre>openssl x509 -noout -fingerprint -text CERTIFICATE.crt</pre>
+                </div>
+            </div>
+        </div>
+    </div> <!-- /container -->
+
     <script src="http://code.jquery.com/jquery.js"></script>
     <script src="bootstrap/js/bootstrap.min.js"></script>
   </body>
