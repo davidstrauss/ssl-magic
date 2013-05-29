@@ -147,21 +147,59 @@ openssl verify -verbose -CAfile ca.crt cert.crt
     <a id="server"></a>
     <div class="container">
         <h2>The Server</h2>
+        <p>To keep things flexible, all of these methods make providing a client certificate <em>optional</em>.
+        If authentication is required, it's possible to handle that in the application when it gets a
+        blank distinguished name. It's also trivial to switch any example to &quot;required&quot; verification.</p>
         <div class="tabbable">
             <ul class="nav nav-tabs">
                 <li class="active"><a href="#server-apache" data-toggle="tab">Apache</a></li>
                 <li><a href="#server-nginx" data-toggle="tab">nginx</a></li>
                 <li><a href="#server-pound" data-toggle="tab">Pound</a></li>
+                <li><a href="#server-lighttpd" data-toggle="tab">Lighttpd</a></li>
                 <li><a href="#server-twisted" data-toggle="tab">Twisted</a></li>
                 <li><a href="#server-nodejs" data-toggle="tab">node.js</a></li>
                 <li><a href="#server-tomcat" data-toggle="tab">Tomcat</a></li>
             </ul>
             <div class="tab-content">
                 <div class="tab-pane active" id="server-apache">
-                    <pre>TODO</pre>
+                    <p>The approach shown here works well if you're running your application
+                    directly from Apache, like with <code>mod_php</code>. Because it sets a
+                    header, it will work with any application that can read incoming HTTP request
+                    headers.</p>
+                    <pre>&lt;VirtualHost *:443&gt;
+    ServerName            example.com:443
+    SSLEngine             on
+    SSLCACertificateFile  ca.crt
+    SSLCertificateFile    server.crt
+    SSLCertificateKeyFile server.key
+    SSLVerifyClient       optional
+    RequestHeader         set X-Client-DN &quot;%{SSL_CLIENT_S_DN}s&quot;
+&lt;/VirtualHost&gt;</pre>
+                    <p>Alternative approaches:</p>
+                    <ul>
+                        <li><a href="http://stackoverflow.com/a/12319567/450218">Setting headers before proxying</a></li>
+                        <li><a href="http://www.modssl.org/docs/2.1/ssl_reference.html#ToC19">Passing client identity using environmental variables.</a></li>
+                    </ul>
                 </div>
                 <div class="tab-pane" id="server-nginx">
-                    <pre>TODO</pre>
+                    <p>Place the following into your <code>nginx.conf</code>
+                    or equivalent, site-specific configuration.</p>
+                    <pre>server {
+    listen                    443;
+    server_name               example.com;
+    ssl                       on;
+    ssl_client_certificate    ca.crt;
+    ssl_certificate           server.crt;
+    ssl_certificate_key       server.key;
+    ssl_verify_client         optional;
+    # More server configuration here.
+}</pre>
+                    <p>For FastCGI, set the client's <code>DN</code> as a parameter.</p>
+                    <pre>fastcgi_param Client-DN $ssl_client_s_dn;</pre>
+                    <p>For proxying, set a <code>Client-DN</code> header.
+                    It's also possible to have nginx proxy to itself if you'd like
+                    to set the header and use nginx as the application server.</p>
+                    <pre>proxy_set_header X-Client-DN $ssl_client_s_dn;</pre>
                 </div>
                 <div class="tab-pane" id="server-pound">
                     <pre>TODO</pre>
@@ -174,6 +212,9 @@ openssl verify -verbose -CAfile ca.crt cert.crt
                 </div>
                 <div class="tab-pane" id="server-tomcat">
                     <pre>TODO</pre>
+                </div>
+                <div class="tab-pane" id="server-tomcat">
+                    <p>The Lighttpd wiki has <a href="http://redmine.lighttpd.net/projects/1/wiki/Docs_SSL">HTTPS client authentication documentation</a>.</p>
                 </div>
             </div>
         </div>
